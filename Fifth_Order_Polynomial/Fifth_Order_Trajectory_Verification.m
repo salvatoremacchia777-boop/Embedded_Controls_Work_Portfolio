@@ -125,34 +125,69 @@ all_pass = req12_pass && move1_rest_pass && hold1_pass && move2_running_pass && 
     req4_pass && no_overshoot_pass && hold2_pass && req3_pass;
 fprintf('Overall: %s\n\n', string(all_pass));
 
-%% ---- Verification Plot ----
-figure('Name', '5th Order Trajectory Verification', 'Position', [100 100 1000 750]);
-transition_t = [1.0, 6.0, 10.0, 11.51, 13.02, 15.0];
+%% ---- Verification Plot (Main) ----
+% Cropped to the working phases only (through the hold after Move 3),
+% excluding the dT=0 edge case -- that case uses a very different
+% acceleration/velocity scale and would otherwise flatten this entire
+% plot into an unreadable near-zero line. See the separate supplementary
+% figure below for the dT=0 edge case specifically.
+main_plot_end = 14.9;
+idx_main = t <= main_plot_end;
+
+figure('Name', '5th Order Trajectory Verification - Main', 'Position', [100 100 1000 750]);
+transition_t = [1.0, 6.0, 10.0, 11.51, 13.02];
 transition_labels = {'Move 1 (rest-to-rest)', 'Hold begins', 'Move 2 rises', ...
-                      'Saturation interrupt', 'Hold begins', 'dT=0 edge case'};
+                      'Saturation interrupt', 'Hold begins'};
 
 ax1 = subplot(3,1,1);
-plot(t, P, 'Color', [0 0.45 0.85], 'LineWidth', 1.5); hold on;
+plot(t(idx_main), P(idx_main), 'Color', [0 0.45 0.85], 'LineWidth', 1.5); hold on;
 for k = 1:length(transition_t)
     xline(transition_t(k), '--k', 'LineWidth', 1);
 end
 ylabel('Boom Angle (deg)'); title('Position Trajectory'); grid on;
 
 ax2 = subplot(3,1,2);
-plot(t, V, 'Color', [0.85 0.33 0.10], 'LineWidth', 1.5); hold on;
+plot(t(idx_main), V(idx_main), 'Color', [0.85 0.33 0.10], 'LineWidth', 1.5); hold on;
 for k = 1:length(transition_t)
     xline(transition_t(k), '--k', 'LineWidth', 1);
 end
 ylabel('Angular Velocity (deg/s)'); title('Velocity Trajectory'); grid on;
 
 ax3 = subplot(3,1,3);
-plot(t, Acc, 'Color', [0 0.6 0], 'LineWidth', 1.5); hold on;
+plot(t(idx_main), Acc(idx_main), 'Color', [0 0.6 0], 'LineWidth', 1.5); hold on;
 for k = 1:length(transition_t)
     xline(transition_t(k), '--k', transition_labels{k}, 'LabelOrientation', 'horizontal', 'FontSize', 7);
 end
 ylabel('Angular Accel (deg/s^2)'); xlabel('Time (s)'); title('Acceleration Trajectory'); grid on;
 
 linkaxes([ax1, ax2, ax3], 'x');
+xlim(ax1, [0 main_plot_end]);
+
+%% ---- Verification Plot (Supplementary): dT=0 Edge Case Only ----
+% Shown separately, at its own natural scale, since the acceleration/
+% velocity magnitudes here are roughly two orders of magnitude larger
+% than the working phases above -- plotting them together would make
+% the main verification unreadable.
+idx_edge = t >= 14.5;
+
+figure('Name', '5th Order Trajectory Verification - dT=0 Edge Case', 'Position', [100 100 700 600]);
+
+ax4 = subplot(3,1,1);
+plot(t(idx_edge), P(idx_edge), 'Color', [0 0.45 0.85], 'LineWidth', 1.5); hold on;
+xline(15.0, '--k', 'dT=0 edge case', 'LabelOrientation', 'horizontal', 'FontSize', 7);
+ylabel('Boom Angle (deg)'); title('dT=0 Edge Case: Position'); grid on;
+
+ax5 = subplot(3,1,2);
+plot(t(idx_edge), V(idx_edge), 'Color', [0.85 0.33 0.10], 'LineWidth', 1.5); hold on;
+xline(15.0, '--k', 'LineWidth', 1);
+ylabel('Angular Velocity (deg/s)'); title('dT=0 Edge Case: Velocity'); grid on;
+
+ax6 = subplot(3,1,3);
+plot(t(idx_edge), Acc(idx_edge), 'Color', [0 0.6 0], 'LineWidth', 1.5); hold on;
+xline(15.0, '--k', 'LineWidth', 1);
+ylabel('Angular Accel (deg/s^2)'); xlabel('Time (s)'); title('dT=0 Edge Case: Acceleration'); grid on;
+
+linkaxes([ax4, ax5, ax6], 'x');
 
 %% ---- Local functions (must be at the end of the script file) ----
 function coeff = local_solve_quintic(Po,Pf,Vo,Vf,Ao,Af,dT)

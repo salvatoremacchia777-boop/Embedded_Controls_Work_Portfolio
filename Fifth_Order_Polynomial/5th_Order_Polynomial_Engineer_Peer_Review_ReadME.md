@@ -1,5 +1,5 @@
 # Fifth-Order Polynomial Trajectory Generator
- ## https://github.com/salvatoremacchia777-boop/Embedded_Controls_Work_Portfolio
+## https://github.com/salvatoremacchia777-boop/Embedded_Controls_Work_Portfolio
 A modular Simulink block for generating smooth, closed-form quintic motion profiles from arbitrary — not necessarily rest — boundary conditions, designed for embedded real-time execution.
 
 ## Overview
@@ -98,14 +98,17 @@ The block was tested against a schedule exercising five requirements, using unit
 
 All handoff values in the saturation-interrupt case are the block's own measured output at the moment of interruption, not arbitrary test numbers — confirming the block genuinely re-plans from wherever it actually is, not from a designed rest condition. Verification was performed via an independent, second implementation of the closed-form coefficient solve (used only for cross-checking, not called from the block itself), evaluated against the same schedule and compared to the logged output.
 
-![Verification plot](./5th_Order_Polynomial_Results.jpg)
-*Figure 3: Position, velocity, and acceleration across the full test schedule above. Phase transitions are labeled directly on the plot. Note the velocity/acceleration spike following the dT=0 edge case at t=15s — this is the known `dT_Protected` limitation discussed in Results below, not a verification failure; every other phase tracks the closed-form solution cleanly.*
+![Verification plot](./5th_Order_Polynomial_Results1.jpg)
+*Figure 3: Position, velocity, and acceleration through the working phases of the test schedule (t=0–14.9s), showing Move 1, the jitter-immunity window, the hold, Move 2, and the mid-flight saturation interrupt. Phase transitions are labeled directly on the plot. The dT=0 edge case is deliberately excluded from this figure and shown separately below, since its acceleration/velocity magnitudes are roughly two orders of magnitude larger and would otherwise compress this entire plot into an unreadable near-zero line.*
 
 ## Results
 
 The block correctly regenerates a trajectory whenever `Trigger` disengages and re-engages, and the active motion profile is fully immune to drift or noise on the external driving signals while `Trigger` remains high.
 
-The current `dT_Protected = max(dT, 10×Step_Time)` reliably prevents division-by-zero, but does not bound peak acceleration — a `dT` commanded far below what the physical system could realistically execute still produces a correspondingly large velocity/acceleration spike in the output.
+The current `dT_Protected = max(dT, 10×Step_Time)` reliably prevents division-by-zero, but does not bound peak acceleration — a `dT` commanded far below what the physical system could realistically execute still produces a correspondingly large velocity/acceleration spike in the output, shown below for the dT=0 edge case from the test schedule:
+
+![dT=0 edge case plot](./5th_Order_Polynomial_Results2.jpg)
+*Figure 4: The dT=0 edge case in isolation, at its own natural scale. `dT_Protected` correctly prevents division-by-zero — no NaN/Inf, the trajectory completes and holds — but the resulting velocity (~190 deg/s) and acceleration (~±6000 deg/s²) magnitudes illustrate why this floor is not sufficient on its own for a real hardware deployment; see the derivation below.*
 
 For an application-specific deployment, a more rigorous floor can be derived directly from actuator hardware limits:
 
@@ -128,13 +131,12 @@ This block provides a closed-form, embedded-suitable quintic trajectory generato
 
 1. 5th_Order_Polynomial_Engineer_Peer_Review_ReadME.md
 2. 5th_Order_Polynomial_Block_Diagram.jpg
-3. 5th_Order_Polynomial_Results.jpg
-4. 5th_Order_Polynomial_Top_Level_Block_Diagram.jpg
-5. Fifth_Order_Polynomial.slx
-6. Fifth_Order_Polynomial_Test_Harness.slx
-7. Fifth_Order_Trajectory_Schedule.m
-8. Fifth_Order_Trajectory_Verification.m
-9. Fifth_Order_Polynomial.c
-10. Fifth_Order_Polynomial.h
-
-
+3. 5th_Order_Polynomial_Results1.jpg
+4. 5th_Order_Polynomial_Results2.jpg
+5. 5th_Order_Polynomial_Top_Level_Block_Diagram.jpg
+6. Fifth_Order_Polynomial.slx
+7. Fifth_Order_Polynomial_Test_Harness.slx
+8. Fifth_Order_Trajectory_Schedule.m
+9. Fifth_Order_Trajectory_Verification.m
+10. Fifth_Order_Polynomial.c
+11. Fifth_Order_Polynomial.h
