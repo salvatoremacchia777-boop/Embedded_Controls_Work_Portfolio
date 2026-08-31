@@ -1,5 +1,4 @@
-This portfolio was designed for people who want operable code. 
-
+This portfolio was designed for people who want code they can either use or learn from.
 Currently included:
 Timing Synchronizer — a self-resetting periodic timing block with runtime-tunable cycle time and duty cycle, verified against 5 explicit behavioral requirements.
 More projects will be added as they're completed and verified.
